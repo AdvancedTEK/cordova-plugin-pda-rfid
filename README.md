@@ -37,7 +37,7 @@ createReader(power, successCallback, errorCallback)
 | errorCallback   | function |         |           | 提供錯誤訊息的 callback function |
 
 #### Example
-```javascript=
+```javascript
 window.PdaPlugin.createReader(
   500,
   (result) => {
@@ -64,7 +64,7 @@ destroyReader(successCallback, errorCallback)
 | errorCallback   | function | 提供錯誤訊息的 callback function |
 
 #### Example
-```javascript=
+```javascript
 window.PdaPlugin.destroyReader(
   (result) => {
     console.log("destroyReader" + result);
@@ -96,7 +96,7 @@ setScanMode(keyMode, successCallback, errorCallback)
 - `barcode` - 條碼模式
 
 #### Example
-```javascript=
+```javascript
 window.PdaPlugin.setScanMode(
   "RFID",
   (result) => {
@@ -141,7 +141,7 @@ readRfidTags(tagsToRead, timeout, successCallback, errorCallback)
 | errorCallback   | function |         |             | 提供錯誤訊息的 callback function |
 
 #### Example
-```javascript=
+```javascript
 window.PdaPlugin.readRfidTags(
   3,
   2000,
@@ -170,7 +170,7 @@ startReading(successCallback, errorCallback)
 | errorCallback   | function | 提供錯誤訊息的 callback function |
 
 #### Example
-```javascript=
+```javascript
 window.PdaPlugin.startReading(
   (result) => {
     console.log("startReading", result);
@@ -199,7 +199,7 @@ stopReading(successCallback, errorCallback)
 | errorCallback   | function | 提供錯誤訊息的 callback function |
 
 #### Example
-```javascript=
+```javascript
 window.PdaPlugin.stopReading(
   (result) => {
     console.log("stopReading" + result);
