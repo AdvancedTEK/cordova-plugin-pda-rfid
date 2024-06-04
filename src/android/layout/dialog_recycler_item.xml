@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@layout/rfid_recycler_item_background"
+    android:orientation="horizontal"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:layout_marginBottom="5dp">
+    <TextView
+        android:id="@+id/epcString"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="6"
+        android:gravity="center_vertical"
+        android:paddingLeft="7dp"
+        android:text="EpcString"
+        android:textColor="#000000"
+        android:textSize="15sp" />
+</LinearLayout>

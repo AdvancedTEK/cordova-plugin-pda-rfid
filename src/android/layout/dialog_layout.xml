@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="800px"
+        android:background="#ffffff">
+
+    <LinearLayout
+            android:id="@+id/columnName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginBottom="5dp"
+            android:layout_alignParentTop="true">
+        <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="6"
+                android:gravity="center"
+                android:background="@layout/rfid_recycler_item_background"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_marginRight="2dp"
+                android:text="讀取RFID"
+                android:textColor="#000000"
+                android:textSize="14sp"/>
+        <Button
+                android:id="@+id/closeDialog"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:backgroundTint="#ffffff"
+                android:gravity="center"
+                android:text="╳"
+                android:stateListAnimator="@null"
+                android:textColor="#000000"
+                android:textSize="19sp" />
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/buttons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+        <Button
+                android:id="@+id/close"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginLeft="8dp"
+                android:layout_marginRight="2dp"
+                android:backgroundTint="#0A7EB8"
+                android:gravity="center"
+                android:text="清除"
+                android:textColor="#ffffff"
+                android:textSize="14sp" />
+        <Button
+                android:id="@+id/done"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginLeft="2dp"
+                android:layout_marginRight="8dp"
+                android:backgroundTint="#0A7EB8"
+                android:gravity="center"
+                android:text="完成掃描"
+                android:textColor="#ffffff"
+                android:textSize="14sp" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@id/buttons"
+            android:layout_below="@id/columnName"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp" />
+
+    <ScrollView
+            android:id="@+id/scrollView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@id/buttons"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="20dp"
+            android:fillViewport="true"
+            android:scrollbars="vertical"
+            android:visibility="gone">
+
+        <TextView
+                android:id="@+id/textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="RFID"
+                android:textColor="#000000"
+                android:textSize="16sp" />
+    </ScrollView>
+
+</RelativeLayout>

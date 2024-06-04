@@ -2,13 +2,15 @@ package cordova.plugin.first.plugin;
 
 import android.content.Context;
 
-import android.os.Handler;
-import android.os.Looper;
 import android.os.SystemClock;
-import android.util.Log;
-import android.widget.*;
 import com.thingmagic.*;
 import com.unitech.api.pogo.PogoCtrl;
+
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+import android.widget.Toast;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaInterfaceImpl;
@@ -21,23 +23,19 @@ import com.unitech.api.Key.KeySetting;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import java.util.*;
-
 public class PdaPlugin extends CordovaPlugin {
 
-    private Context context;
+    private CallbackContext callbackContext;
     private static CordovaInterface cordovaInterface;
+    private Context context;
 
     public PogoCtrl pogoCtrl = null;
     public String uartPath = null;
     public static Reader reader = null;
-    private static boolean reading = false;
-    private static boolean readerCreated = false;
-    private static List<String> epcStringList;
-    private Thread readingThread;
+    public static boolean reading = false;
+    public DialogList dialogList;
 
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private Toast logToast;
+    private static final Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -47,62 +45,53 @@ public class PdaPlugin extends CordovaPlugin {
     }
 
     @Override
-    public boolean execute(String action, JSONArray args, CallbackContext pluginCallback) throws JSONException {
+    public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+        this.callbackContext = callbackContext;
         switch (action) {
-            case "createReader": // 建立 RFID reader
-                createReader(args.optInt(0, 3000), pluginCallback);
+            case "setScanMode":
+                setScanMode(args.getString(0), callbackContext);
                 return true;
-            case "destroyReader": // 銷毀 RFID reader
-                destroyReader(pluginCallback);
+            case "scan":
+                openDialog(callbackContext);
                 return true;
-            case "startReading": // 開始掃描
-                startReading(pluginCallback);
-                return true;
-            case "readRfidTags": // 掃描到n個tag就結束
-                readRfidTags(args.optInt(0, 5), args.optInt(1, 3000), pluginCallback);
-                return true;
-            case "stopReading": // 停止掃描
-                stopReading(pluginCallback);
-                return true;
-            case "setScanMode": // 切換掃描模式
-                setScanMode(args.optString(0, "barcode"), pluginCallback);
+            case "createReader":
+                createReader(args.optInt(0, 3000), callbackContext);
                 return true;
             default:
                 return false;
         }
     }
 
-    // 切換掃描模式
-    private void setScanMode(String keyMode, CallbackContext pluginCallback) {
-        new Thread(() -> {
-
+    private void openDialog(CallbackContext callbackContext) {
+        handler.post(() -> {
             try {
-                KeySetting keySetting = KeySetting.getInstance(context);
-                boolean mode = "RFID".equalsIgnoreCase(keyMode);
-                // true: RFID, false: barcode scanner
-                keySetting.setKeyRemapStatus(mode);
-                keySetting.changeTriggerKeyMode(mode);
+                dialogList = new DialogList(cordova.getActivity()) {
+                    @Override
+                    protected void onCreate(Bundle savedInstanceState) {
+                        super.onCreate(savedInstanceState);
+                    }
+                };
 
-                boolean keyRemapStatus = keySetting.getKeyRemapStatus().getBoolean(KeySetting.BUNDLE_KEY_REMAPPING);
-                String RFIDTriggerKeyCode = keySetting.getRFIDTriggerKeyCode().getString(KeySetting.BUNDLE_KEY_CODE);
-                String ScannerTriggerKeyCode = keySetting.getScannerTriggerKeyCode().getString(KeySetting.BUNDLE_KEY_CODE);
-                String TriggerKeyCode = keySetting.getTriggerKeyCode().getString(KeySetting.BUNDLE_KEY_CODE);
+                // 接 dialog 傳回來的資料
+                dialogList.setDialogResult(new DialogList.OnDialogResult() {
+                    @Override
+                    public void finish(String result) {
+                        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, result);
+                        pluginResult.setKeepCallback(true);
+                        callbackContext.sendPluginResult(pluginResult);
+                    }
+                });
 
-                String message = String.format("KeyRemapStatus=%s\nRFIDTriggerKeyCode=%s\nScannerTriggerKeyCode=%s\nTriggerKeyCode=%s",
-                        keyRemapStatus ? "RFID" : "Scanner", RFIDTriggerKeyCode, ScannerTriggerKeyCode, TriggerKeyCode);
-                Log.d("test", "setScanMode: \n" + message);
-                pluginCallback.success(keyRemapStatus ? "RFID" : "Scanner");
+                dialogList.show();
+
             } catch (Exception e) {
-                pluginCallback.error(e.getMessage());
+                callbackContext.error("ERROR" + e);
             }
-
-        }).start();
+        });
     }
 
     // 建立 RFID reader
     public void createReader(int power, CallbackContext pluginCallback) {
-        epcStringList = new ArrayList<>();
-
         new Thread(() -> {
             Log.d("test", "createReader: Reader Initializing...");
 
@@ -166,116 +155,53 @@ public class PdaPlugin extends CordovaPlugin {
                 pluginCallback.error(e.getMessage());
             }
 
-            readerCreated = true;
             Log.d("test", "createReader: Reader Initialized!");
             pluginCallback.success("success");
 
         }).start();
     }
 
-    // 開始掃描
-    public void startReading(CallbackContext pluginCallback) {
-        if (!readerCreated) {
-            pluginCallback.error("Reader還沒建完");
-            return;
-        }
-
-        reading = true;
-        reader.startReading();
-        pluginCallback.success("success");
-    }
-
-    // 掃描到n個tag就結束
-    public void readRfidTags(int tagsToRead, int timeout, CallbackContext pluginCallback) {
-        Log.d("test", "readRfidTags: " + tagsToRead + " / " + timeout);
-        if (!readerCreated) {
-            pluginCallback.error("Reader還沒建完");
-            return;
-        }
-
-        readingThread = new Thread(() -> {
-            toast("開始掃描...");
-            long start = System.currentTimeMillis();
-            reader.startReading();
-            reading = true;
-
-            while (epcStringList.size() < tagsToRead) {
-                if (readingThread.isInterrupted()) {
-                    break;
-                }
-                Log.d("test", "readRfidTags: reading...");
-                if (System.currentTimeMillis() - start > timeout) { // 超過 timeout 時間後直接 return
-                    if (epcStringList.size() > 0) {
-                        break;
-                    }
-
-                    reader.stopReading();
-                    reading = false;
-                    epcStringList.clear();
-                    pluginCallback.error("沒辦法在 " + timeout / 1000.0 + " 秒內掃描到 RFID tag");
-                    return;
-                }
-            }
-
-            if (!readingThread.isInterrupted()) {
-                this.stopReading(pluginCallback);
-            }
+    private static final ReadListener readListener = (reader, data) -> {
+        handler.post(() -> {
+            DialogList.dialogListAdapter.add(data.getTag().epcString());
         });
-        readingThread.start();
-    }
+        Log.d("test", "=== tagRead ===  " + data.getTag().epcString() + "  " + data.getRssi() + " |  count:  " + data.getReadCount());
+    };
 
-    // 停止掃描
-    public void stopReading(CallbackContext pluginCallback) {
-        if (!readerCreated) {
-            pluginCallback.error("Reader還沒建完");
-            return;
-        }
+    private static final ReadExceptionListener readExceptionListener = (reader, e) -> {
+        Log.e("test", "readExceptionListener: " + e.getTagReads() + " / " + e.getMessage());
+    };
 
-        reading = false;
-        reader.stopReading();
-        if (Objects.nonNull(readingThread)) {
-            readingThread.interrupt();
-        }
-        Log.d("test", "stopReading: " + epcStringList.toString().substring(1, epcStringList.toString().length() - 1));
-        pluginCallback.success(epcStringList.toString());
-        epcStringList.clear();
-    }
+    private static final StatusListener statusListener = (reader, statusReports) -> {
+        // Log.d("test", "statusMessage: " + Arrays.toString(statusReports));
+    };
 
-    public void destroyReader(CallbackContext pluginCallback) {
-        if (!readerCreated) {
-            pluginCallback.error("Reader還沒建完");
-            return;
-        }
-        reader.destroy();
-        Log.d("test", "destroyReader: Reader destroyed!");
-        pluginCallback.success("success");
-    }
+    private void setScanMode(String keyMode, CallbackContext callbackContext) {
+        new Thread(() -> {
+            try {
+                KeySetting keySetting = KeySetting.getInstance(context);
+                boolean mode = "RFID".equalsIgnoreCase(keyMode);
+                keySetting.setKeyRemapStatus(mode);
+                keySetting.changeTriggerKeyMode(mode);
 
-    public static ReadListener readListener = (reader, tagReadData) -> {
-        String epcString = tagReadData.getTag().epcString();
-        if (epcString != null && reading) {
-            if (epcStringList.contains(epcString)) {
-//                epcStringList.add(epcString + " " + Instant.now().getEpochSecond());
-                Log.d("test", "=== tagRead ===  " + epcString + "  " + tagReadData.getRssi() + " (重複掃描)");
-            } else {
-                epcStringList.add(epcString);
-                Log.d("test", "=== tagRead ===  " + epcString + "  " + tagReadData.getRssi());
+                boolean keyRemapStatus = keySetting.getKeyRemapStatus().getBoolean(KeySetting.BUNDLE_KEY_REMAPPING);
+                String RFIDTriggerKeyCode = keySetting.getRFIDTriggerKeyCode().getString(KeySetting.BUNDLE_KEY_CODE);
+                String ScannerTriggerKeyCode = keySetting.getScannerTriggerKeyCode().getString(KeySetting.BUNDLE_KEY_CODE);
+                String TriggerKeyCode = keySetting.getTriggerKeyCode().getString(KeySetting.BUNDLE_KEY_CODE);
+
+                String message = String.format("KeyRemapStatus=%s\nRFIDTriggerKeyCode=%s\nScannerTriggerKeyCode=%s\nTriggerKeyCode=%s",
+                        keyRemapStatus ? "RFID" : "Scanner", RFIDTriggerKeyCode, ScannerTriggerKeyCode, TriggerKeyCode);
+                callbackContext.success(message);
+                toast("已切換掃描模式為" + (keyRemapStatus ? "RFID" : "Scanner"));
+
+            } catch (Exception e) {
+                callbackContext.error("ERROR" + e);
             }
-        }
-    };
-
-    public static ReadExceptionListener readExceptionListener = (reader, e) -> {
-        Log.e("test", "tagReadException: " + e.getTagReads() + " / " + e.getMessage());
-    };
-
-    public static StatusListener statusListener = (reader, statusReports) -> {
-//        Log.d("test", "statusMessage: " + Arrays.toString(statusReports));
-    };
+        }).start();
+    }
 
     public void toast(String message) {
-        handler.post(() -> {
-            Toast.makeText(cordovaInterface.getActivity(), message, Toast.LENGTH_SHORT).show();
-        });
+        Toast.makeText(cordova.getActivity(), message, Toast.LENGTH_SHORT).show();
     }
 
 }
